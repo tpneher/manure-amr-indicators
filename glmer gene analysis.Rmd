@@ -1,0 +1,292 @@
+---
+title: "GLMER Gene Analysis"
+author: "Tim Neher"
+date: "12/10/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, results=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lme4)
+library(emmeans)
+library(performance)
+library(sjPlot)
+```
+
+```{r, results=FALSE}
+qpcr_r <- read.csv("qpcr_r.csv")
+
+qpcr_r$integrator <- as.factor(qpcr_r$integrator)
+qpcr_r$biorep <- as.factor(qpcr_r$biorep)
+qpcr_r$techrep <- as.factor(qpcr_r$techrep)
+qpcr_r$farm <- as.factor(qpcr_r$farm)
+```
+
+```{r, results=FALSE}
+rna <- subset(qpcr_r, gene == "16S")
+ermb <- subset(qpcr_r, gene == "ermB")
+tetm <- subset(qpcr_r, gene == "tetM")
+```
+
+# Integrator and Production System Effects GLMER
+
+## ermB
+### Data curation
+Keeps the manure samples and farms with antibiotics dosed in feed and water (n farms=47)
+```{r}
+ermb_1 <- subset(ermb, matrix == 'manure')
+ermb_1 <- ermb_1 %>%
+  filter(!antibiotic == ("no"))
+```
+
+### Model setup
+```{r}
+modelermb <- glmer(copies.g ~ type*integrator + (1|farm:biorep), data = ermb_1, family = Gamma(link = "log"))
+modelermb
+
+model_performance(modelermb)
+```
+
+### ermB EMMEANS for integrator and production system
+```{r}
+modelermb.emm <- emmeans(modelermb, c("integrator", "type"))
+modelermb.emm
+pairs(modelermb.emm)
+
+modelermb.emm1 <- emmeans(modelermb, c("integrator"))
+modelermb.emm1
+
+modelermb.emm2 <- emmeans(modelermb, c("type"))
+modelermb.emm2
+
+joint_tests(modelermb.emm)
+
+joint_tests(modelermb.emm, by = "type")
+joint_tests(modelermb.emm, by = "integrator")
+
+emm_ermb_i.t <- emmeans(modelermb, pairwise ~ integrator | type)
+emm_ermb_i.t
+
+emm_ermb_t.i <- emmeans(modelermb, pairwise ~ type | integrator)
+emm_ermb_t.i
+```
+
+
+### ermB estimated marginal means plot for integrator and production system
+```{r}
+ermb <- emmip(modelermb, integrator ~ type, CIs = TRUE, PIs = FALSE, ylab = "Estimated Marginal Mean (Ln Copies/Gram)",
+              xlab = "Production System", tlab = "Integrator", linearg = list(linetype = "dashed"), CIarg = list(lwd = 2, alpha = 1),
+              dotarg = list(size=10, shape=3))
+
+ermb <- ermb + scale_color_manual(values=c("#F97066", "#2586E8")) + font_size(labels.x = "12", axis_title.x = "12", axis_title.y = "12", labels.y = "12")
+
+ermb <- ermb + scale_y_continuous(breaks = c(12, 13, 14, 15, 16, 17, 18))
+
+ermb <- ermb + expand_limits(y = (c(12, 18)))
+
+ermb
+```
+
+## tetM integrator and production system effects
+### Data curation
+Keeps the manure samples and farms with antibiotics dosed in feed and water (n farms=47)
+```{r}
+
+tetm_1 <- subset(tetm, matrix == 'manure')
+tetm_1 <- tetm_1 %>%
+  filter(!antibiotic == "no")
+```
+
+### Model setup
+```{r}
+modeltetm <- glmer(copies.g ~ type*integrator + (1|farm:biorep), data = tetm_1, family = Gamma(link = "log"))
+modeltetm
+
+model_performance(modeltetm)
+```
+
+
+### tetM EMMEANS for integrator and producion system
+```{r}
+modeltetm.emm <- emmeans(modeltetm, c("integrator", "type"))
+modeltetm.emm
+pairs(modeltetm.emm)
+
+modeltetm.emm1 <- emmeans(modeltetm, c("integrator"))
+modeltetm.emm1
+modeltetm.emm2 <- emmeans(modeltetm, c("type"))
+modeltetm.emm2
+
+joint_tests(modeltetm.emm)
+
+joint_tests(modeltetm, by = "type")
+joint_tests(modeltetm, by = "integrator")
+
+emm_tetm_i.t <- emmeans(modeltetm, pairwise ~ integrator | type)
+emm_tetm_i.t
+
+emm_tetm_t.i <- emmeans(modeltetm, pairwise ~ type | integrator)
+emm_tetm_t.i
+```
+
+### tetM estimated marginal means plot for integrator and production system
+```{r}
+tetm <- emmip(modeltetm, integrator ~ type, CIs = TRUE, PIs = FALSE, ylab = "Estimated Marginal Mean (Ln Copies/Gram)",
+              xlab = "Production System", tlab = "Integrator", linearg = list(linetype = "dashed"), CIarg = list(lwd = 2, alpha = 1),
+              dotarg = list(size=10, shape=3)) 
+
+tetm <- tetm + scale_color_manual(values=c("#F97066", "#2586E8")) + font_size(labels.x = "12", axis_title.x = "12", axis_title.y = "12", labels.y = "12")
+
+tetm <- tetm + scale_y_continuous(breaks = c(12, 13, 14, 15, 16, 17, 18))
+
+tetm <- tetm + expand_limits(y = (c(12, 18)))
+
+tetm
+```
+
+# Antibiotic Effects GLMER
+
+## ermB
+### Data curation
+Keeps the ermB gene and removes the integrator 1 and Gilt from the dataset.
+```{r}
+ermb <- subset(qpcr_r, gene == "ermB")
+ermb_ant <- ermb %>%
+  filter(integrator == ("2") & (!type == ("Gilt")))
+```
+
+### Model setup
+```{r}
+model_ermb_ant <- glmer(copies.g ~ type*antibiotic + (1|farm:biorep), data = ermb_ant, family = Gamma(link = "log"))
+model_ermb_ant
+
+model_performance(model_ermb_ant)
+```
+
+### ermB EMMEANS for antibiotic effects
+```{r}
+
+model_ermb_ant_emm <- emmeans(model_ermb_ant, c("antibiotic", "type"))
+model_ermb_ant_emm
+
+plot(model_ermb_ant_emm)
+
+model_ermb_ant_emm1 <- emmeans(model_ermb_ant, c("antibiotic"))
+model_ermb_ant_emm1
+
+plot(model_ermb_ant_emm1)
+
+model_ermb_ant_emm2 <- emmeans(model_ermb_ant, c("type"))
+model_ermb_ant_emm2
+
+joint_tests(model_ermb_ant)
+
+emmip(model_ermb_ant, type ~ antibiotic)
+emmip(model_ermb_ant, antibiotic ~ type)
+
+emmeans(model_ermb_ant, pairwise ~ antibiotic | type)
+emmeans(model_ermb_ant, pairwise ~ type | antibiotic)
+```
+
+## tetM for antibiotic effects
+### Data curation
+Keeps the tetM gene and removes the integrator 1 and Gilt from the dataset.
+```{r}
+tetm <- subset(qpcr_r, gene == "tetM")
+tetm_ant <- tetm %>%
+  filter(integrator == ("2") & !type == ("Gilt"))
+```
+
+### Model setup
+```{r}
+model_tetm_ant <- glmer(copies.g ~ type*antibiotic + (1|farm:biorep), data = tetm_ant, family = Gamma(link = "log"))
+model_tetm_ant
+
+model_performance(model_tetm_ant)
+```
+
+### tetm EMMEANS for antibiotic effects
+```{r}
+
+model_tetm_ant_emm <- emmeans(model_tetm_ant, c("antibiotic", "type"))
+model_tetm_ant_emm
+
+plot(model_tetm_ant_emm)
+
+model_tetm_ant_emm1 <- emmeans(model_tetm_ant, c("antibiotic"))
+model_tetm_ant_emm1
+
+plot(model_tetm_ant_emm1)
+
+model_tetm_ant_emm2 <- emmeans(model_tetm_ant, c("type"))
+model_tetm_ant_emm2
+
+joint_tests(model_tetm_ant)
+
+emmip(model_tetm_ant, type ~ antibiotic)
+emmip(model_tetm_ant, antibiotic ~ type)
+
+emmeans(model_tetm_ant, pairwise ~ antibiotic | type)
+emmeans(model_tetm_ant, pairwise ~ type | antibiotic)
+```
+
+# Soil Versus Manure Comparison with GLMER
+
+## ermB
+### Data curation
+Keeps the soil and manure, combines it into one datasheet and then filters out 
+```{r}
+ermb_soil <- subset(ermb, matrix == "soil")
+ermb_manure <- subset(ermb, matrix == "manure")
+ermb_soil_water <- rbind(ermb_soil, ermb_manure)
+```
+
+### Model setup
+```{r}
+model_ermb_matrix <- glmer(copies.g ~ matrix + (1|farm:biorep), data = ermb_soil_water, family = Gamma(link = "log"))
+model_ermb_matrix
+
+model_performance(model_ermb_matrix)
+```
+
+### ermb EMMEANS for soil vs manure
+```{r}
+model_ermb_matrix.emm <- emmeans(model_ermb_matrix, c("matrix"))
+model_ermb_matrix.emm
+
+joint_tests(model_ermb_matrix)
+
+plot(model_ermb_matrix.emm)
+```
+
+## tetM for soil vs manure
+### Data curation
+```{r}
+tetm_soil <- subset(tetm, matrix == "soil")
+tetm_manure <- subset(tetm, matrix == "manure")
+tetm_soil_water <- rbind(tetm_soil, tetm_manure)
+```
+
+### Model setup
+```{r}
+model_tetm_matrix <- glmer(copies.g ~ matrix + (1|farm:biorep), data = tetm_soil_water, family = Gamma(link = "log"))
+model_tetm_matrix
+
+model_performance(model_tetm_matrix)
+```
+
+### tetm EMMEANS for soil vs manure
+```{r}
+model_tetm_matrix.emm <- emmeans(model_tetm_matrix, c("matrix"))
+model_tetm_matrix.emm
+
+joint_tests(model_tetm_matrix)
+
+plot(model_tetm_matrix.emm)
+```
