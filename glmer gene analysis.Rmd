@@ -34,6 +34,37 @@ ermb <- subset(qpcr_r, gene == "ermB")
 tetm <- subset(qpcr_r, gene == "tetM")
 ```
 
+# ermB and tetM concentrations across all 50 farms
+
+## ermB
+Keeps only the manure samples (n=50)
+Results show significant differences of ermB across all 50 manure samples from different farms.
+```{r, results=FALSE}
+ermb_manure <- subset(ermb, matrix == 'manure')
+ermb_manure <- glmer(copies.g ~ farm + (1|farm:biorep), data = ermb_manure, family = Gamma(link = "log"))
+joint_tests(ermb_manure)
+ermb_manure.emm <- emmeans(ermb_manure, "farm")
+plot(ermb_manure.emm)
+
+icc(ermb_manure)
+model_performance(ermb_manure)
+```
+
+
+## tetM
+Keeps only the manure samples (n=50)
+Results show significant differences of tetM across all 50 manure samples from different farms.
+```{r, results=FALSE}
+tetm_manure <- subset(tetm, matrix == 'manure')
+tetm_manure <- glmer(copies.g ~ farm + (1|farm:biorep), data = tetm_manure, family = Gamma(link = "log"))
+joint_tests(tetm_manure)
+tetm_manure.emm <- emmeans(tetm_manure, "farm")
+plot(tetm_manure.emm)
+
+icc(tetm_manure)
+model_performance(tetm_manure)
+```
+
 # Integrator and Production System Effects GLMER
 
 ## ermB
@@ -50,6 +81,7 @@ ermb_1 <- ermb_1 %>%
 modelermb <- glmer(copies.g ~ type*integrator + (1|farm:biorep), data = ermb_1, family = Gamma(link = "log"))
 modelermb
 
+icc(modelermb)
 model_performance(modelermb)
 ```
 
@@ -108,6 +140,7 @@ tetm_1 <- tetm_1 %>%
 modeltetm <- glmer(copies.g ~ type*integrator + (1|farm:biorep), data = tetm_1, family = Gamma(link = "log"))
 modeltetm
 
+icc(modeltetm)
 model_performance(modeltetm)
 ```
 
@@ -166,6 +199,7 @@ ermb_ant <- ermb %>%
 model_ermb_ant <- glmer(copies.g ~ type*antibiotic + (1|farm:biorep), data = ermb_ant, family = Gamma(link = "log"))
 model_ermb_ant
 
+icc(model_ermb_ant)
 model_performance(model_ermb_ant)
 ```
 
@@ -208,6 +242,7 @@ tetm_ant <- tetm %>%
 model_tetm_ant <- glmer(copies.g ~ type*antibiotic + (1|farm:biorep), data = tetm_ant, family = Gamma(link = "log"))
 model_tetm_ant
 
+icc(model_tetm_ant)
 model_performance(model_tetm_ant)
 ```
 
@@ -252,6 +287,7 @@ ermb_soil_water <- rbind(ermb_soil, ermb_manure)
 model_ermb_matrix <- glmer(copies.g ~ matrix + (1|farm:biorep), data = ermb_soil_water, family = Gamma(link = "log"))
 model_ermb_matrix
 
+icc(model_ermb_matrix)
 model_performance(model_ermb_matrix)
 ```
 
@@ -278,6 +314,7 @@ tetm_soil_water <- rbind(tetm_soil, tetm_manure)
 model_tetm_matrix <- glmer(copies.g ~ matrix + (1|farm:biorep), data = tetm_soil_water, family = Gamma(link = "log"))
 model_tetm_matrix
 
+icc(model_tetm_matrix)
 model_performance(model_tetm_matrix)
 ```
 
